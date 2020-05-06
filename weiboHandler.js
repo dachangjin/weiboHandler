@@ -1,4 +1,5 @@
 
+
 // @description  微博批量操作，自动翻页，刷新即可停止
 // @version      1.0.0
 // @author       WangWei
@@ -16,7 +17,7 @@
  * 4:改为仅自己可见类型
  */
 
-var type = 3;
+var type = 1;
 var timeInterval = 1000;//每次调用间隔为1000毫秒，间隔太小可能造成系统繁忙，导致后面大量操作都处于系统繁忙
 var deleteIfFail = false;// 操作失败是否删除,否则跳过该条。false为跳过，true为删除
 
@@ -89,8 +90,14 @@ function handleItem() {
 
     var selectorStr = 'div[action-type=feed_list_item][action-data!="' + visibleType + '"]';
     if (type == 0) selectorStr = 'div[action-type=feed_list_item]';
-    var items = $(selectorStr);    
+    var items = $(selectorStr);  
+    //经测试，删除时当前页面至少留两条微博转跳后页面才不会刷新
+    if(items.length < 3 && type == 0) {
+        stepToNext();
+        return;
+    }  
     var item = items[0];
+    
     if (item) {
         var mid = $(item).attr('mid');
         //修改失败对话框
@@ -109,11 +116,7 @@ function handleItem() {
             if (button[0]) {
                 button[0].click();
                 $('a[action-type="ok"]')[0].click();
-                if (items.length < 5) {
-                    scrollToBottomAndStepToNext();
-                }
-            } else {
-                scrollToBottomAndStepToNext();
+                
             }
         } else {
             // $(item).attr('action-data','cur_visible=1');
@@ -123,23 +126,55 @@ function handleItem() {
                 if (button[0]) {
                     button[0].click();
                     $('a[action-type="ok"]')[0].click();
-                } else {
-                    scrollToBottomAndStepToNext();
-                }
+                } 
             } else {
                 //跳过
                 $(item).attr('action-data',visibleType);
-
             }
+
         }
-    } else {
-        scrollToBottomAndStepToNext();
+        if (items.length < 5) {
+            scrollToBottom();
+        }
+        
+    } else {    
+        stepToNext();
+    }
+    //删除直到最后页，但是前面的没有删除干净，转跳到第一页重新删除
+    // console.log(type + "///" + isNextButtonShowing)
+    if (type == 0 && isPreButtonShowing() && !isNextButtonShowing()) {
+        var firstPage = $('a[bpfilter="page"][href*="page=1#"]')[0];
+        if (firstPage) {
+            firstPage.click();
+        }
     }
 }
 
 
-function scrollToBottomAndStepToNext() {
+function isPreButtonShowing() {
+    var pre = $('.page.prev.S_txt1.S_line1');
+    if (pre[0]) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+function isNextButtonShowing() {
+    var next = $('.page.next.S_txt1.S_line1');
+    if (next[0]) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+function scrollToBottom() {
     $('html, body').animate({ scrollTop: $(document).height() }, 'slow');
+   
+}
+
+function stepToNext() {
     var next = $('.page.next.S_txt1.S_line1');
     if (next[0]) {
         next[0].click();
